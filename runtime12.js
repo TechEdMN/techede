@@ -5,6 +5,7 @@
    - verifies signature using WebCrypto
    - compiles FLO -> HTML (same rules as server)
    - renders into document.body
+   - CSP-compliant (no inline styles)
 */
 
 (async function () {
@@ -41,15 +42,11 @@
 
   // FLO client compile (mirror of server's mapping) -------------------------
   function clientCompileFLO(src, context = {}) {
-    // Very small deterministic transform. Avoid innerHTML where possible.
-    // For this demo we produce HTML strings, but sanitize or use DOM APIs for production.
     let html = src;
-    // interpolate variables {{ var }}
     html = html.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, v) => {
       return context[v] !== undefined ? String(context[v]) : '';
     });
 
-    // simple flo tag -> html mapping (keep one-to-one and deterministic)
     html = html
       .replace(/<flo:page[^>]*title="([^"]+)"[^>]*>/g, '<div class="flo-page" data-title="$1">')
       .replace(/<\/flo:page>/g, '</div>')
@@ -72,7 +69,7 @@
     const pubPemEl = document.getElementById('flo-public-pem');
 
     if (!payloadEl || !sigEl || !pubPemEl) {
-      document.body.innerHTML = '<pre style="color:red">FLO runtime: missing payload or signature or public key.</pre>';
+      document.body.innerHTML = '<pre class="flo-error">FLO runtime: missing payload or signature or public key.</pre>';
       return;
     }
 
@@ -87,7 +84,7 @@
     const ok = await verifySignature(publicKey, sigB64, floSource);
 
     if (!ok) {
-      document.body.innerHTML = '<pre style="color:red">FLO integrity check failed. Rendering aborted.</pre>';
+      document.body.innerHTML = '<pre class="flo-error">FLO integrity check failed. Rendering aborted.</pre>';
       return;
     }
 
@@ -95,26 +92,20 @@
     const context = { user: 'Scholar' }; // Example: server could embed a JSON context
     const html = clientCompileFLO(floSource, context);
 
-    // Render using DOM APIs to avoid some innerHTML pitfalls.
-    // For this demo we replace body safely by parsing to a template and then moving nodes.
+    // Render using DOM APIs to avoid innerHTML pitfalls
     const temp = document.createElement('template');
     temp.innerHTML = html;
-    // clear body then append children
     document.body.innerHTML = '';
     Array.from(temp.content.childNodes).forEach(n => document.body.appendChild(n));
 
     // Optional: add a small banner to indicate verification success
     const note = document.createElement('div');
-    note.style.fontSize = '12px';
-    note.style.opacity = '0.7';
-    note.style.position = 'fixed';
-    note.style.right = '8px';
-    note.style.bottom = '8px';
+    note.classList.add('flo-note'); // uses CSS class instead of inline styles
     note.textContent = 'FLO verified ✔';
     document.body.appendChild(note);
 
   } catch (err) {
     console.error('FLO runtime error:', err);
-    document.body.innerHTML = '<pre style="color:red">FLO runtime error: see console.</pre>';
+    document.body.innerHTML = '<pre class="flo-error">FLO runtime error: see console.</pre>';
   }
 })();
