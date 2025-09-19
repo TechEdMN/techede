@@ -1,0 +1,17 @@
+.flo-note {
+  font-size: 12px;
+  opacity: 0.7;
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+  background-color: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.flo-error {
+  color: red;
+  font-weight: bold;
+  padding: 16px;
+}
